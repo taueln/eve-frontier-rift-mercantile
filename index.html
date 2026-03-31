@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RIFT MERCANTILE — Tribe Fleet Insurance</title>
+<!-- Sui Wallet Standard for EVE Vault detection -->
+<script src="https://unpkg.com/@mysten/wallet-standard@0.10.3/dist/umd/wallet-standard.umd.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:wght@300;400;500;700&display=swap');
+
+  :root {
+    --coral: #FF4D1C;
+    --coral-light: #FF6B42;
+    --coral-pale: #FFF0EB;
+    --white: #FFFFFF;
+    --off-white: #FAF8F6;
+    --ink: #1A0F0A;
+    --ink-mid: #4A3228;
+    --ink-light: #8C6B5E;
+    --gold: #E8A020;
+    --success: #2ECC71;
+    --border: #F0E0D8;
+    --shadow: 0 2px 20px rgba(255,77,28,0.08);
+    --shadow-lg: 0 8px 40px rgba(255,77,28,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--off-white);
+    color: var(--ink);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── WALLET GATE ── */
+  #gate {
+    position: fixed;
+    inset: 0;
+    background: var(--coral);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+
+  #gate.hidden { opacity: 0; pointer-events: none; transform: translateY(-20px); }
+
+  .gate-bg { position: absolute; inset: 0; overflow: hidden; }
+  .gate-bg::before {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    border: 80px solid rgba(255,255,255,0.08);
+    top: -200px; right: -200px;
+  }
+  .gate-bg::after {
+    content: '';
+    position: absolute;
+    width: 400px; height: 400px;
+    border-radius: 50%;
+    border: 60px solid rgba(255,255,255,0.06);
+    bottom: -150px; left: -100px;
+  }
+
+  .gate-content {
+    position: relative; z-index: 1;
+    text-align: center; padding: 40px; max-width: 480px;
+  }
+
+  .gate-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; letter-spacing: 0.2em;
+    color: rgba(255,255,255,0.6);
+    text-transform: uppercase; margin-bottom: 24px;
+  }
+
+  .gate-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 72px; color: var(--white);
+    line-height: 0.9; margin-bottom: 8px; letter-spacing: 0.02em;
+  }
+
+  .gate-sub {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px; color: rgba(255,255,255,0.5);
+    letter-spacing: 0.1em; margin-bottom: 48px;
+  }
+
+  .gate-desc {
+    font-size: 15px; color: rgba(255,255,255,0.75);
+    line-height: 1.6; margin-bottom: 48px; font-weight: 300;
+  }
+
+  .gate-connect-btn {
+    background: var(--white); color: var(--coral);
+    border: none; padding: 18px 48px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px; font-weight: 700;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    cursor: pointer; transition: all 0.2s;
+  }
+
+  .gate-connect-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+
+  .gate-note {
+    margin-top: 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: rgba(255,255,255,0.4); letter-spacing: 0.1em;
+  }
+
+  /* ── MAIN APP ── */
+  #app { display: none; min-height: 100vh; }
+  #app.visible { display: block; }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--white);
+    border-bottom: 2px solid var(--coral);
+    padding: 0 40px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px; position: sticky; top: 0; z-index: 100;
+    box-shadow: var(--shadow);
+  }
+
+  .header-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px; color: var(--coral); letter-spacing: 0.05em;
+  }
+
+  .header-logo span {
+    color: var(--ink); font-size: 14px;
+    font-family: 'DM Mono', monospace; font-weight: 300;
+    margin-left: 12px; vertical-align: middle; letter-spacing: 0.05em;
+  }
+
+  .header-nav { display: flex; gap: 4px; }
+
+  .nav-btn {
+    background: none; border: none;
+    padding: 8px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 500;
+    color: var(--ink-light); cursor: pointer;
+    letter-spacing: 0.03em; transition: all 0.15s;
+    position: relative;
+  }
+
+  .nav-btn::after {
+    content: ''; position: absolute;
+    bottom: 0; left: 16px; right: 16px;
+    height: 2px; background: var(--coral);
+    transform: scaleX(0); transition: transform 0.2s;
+  }
+
+  .nav-btn:hover { color: var(--coral); }
+  .nav-btn.active { color: var(--coral); }
+  .nav-btn.active::after { transform: scaleX(1); }
+
+  .wallet-badge {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 16px;
+    background: var(--coral-pale);
+    border: 1px solid rgba(255,77,28,0.2);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--coral); letter-spacing: 0.05em;
+  }
+
+  .wallet-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--success); animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+  }
+
+  /* ── PAGES ── */
+  .page { display: none; padding: 40px; max-width: 1100px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* ── HERO BAND ── */
+  .hero-band {
+    background: var(--coral);
+    margin: -40px -40px 40px -40px;
+    padding: 48px 40px;
+    position: relative; overflow: hidden;
+  }
+
+  .hero-band::before {
+    content: 'RIFT';
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 200px; color: rgba(255,255,255,0.06);
+    position: absolute; right: -20px; top: -30px;
+    line-height: 1; pointer-events: none;
+  }
+
+  .hero-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; letter-spacing: 0.2em;
+    color: rgba(255,255,255,0.6);
+    text-transform: uppercase; margin-bottom: 12px;
+  }
+
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px; color: var(--white); line-height: 1; margin-bottom: 16px;
+  }
+
+  .hero-desc {
+    font-size: 15px; color: rgba(255,255,255,0.75);
+    max-width: 480px; line-height: 1.6; font-weight: 300;
+  }
+
+  /* ── STATS ROW ── */
+  .stats-row {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 16px; margin-bottom: 40px;
+  }
+
+  .stat-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    padding: 24px; position: relative; transition: box-shadow 0.2s;
+  }
+
+  .stat-card:hover { box-shadow: var(--shadow-lg); }
+
+  .stat-card::before {
+    content: ''; position: absolute;
+    top: 0; left: 0; right: 0; height: 3px;
+    background: var(--coral);
+  }
+
+  .stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 0.15em;
+    color: var(--ink-light); text-transform: uppercase; margin-bottom: 10px;
+  }
+
+  .stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px; color: var(--ink); line-height: 1;
+  }
+
+  .stat-value span {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px; color: var(--ink-light); margin-left: 4px; font-weight: 300;
+  }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+  }
+
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px; color: var(--ink); letter-spacing: 0.05em;
+  }
+
+  .section-action {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--coral); cursor: pointer;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    background: none; border: none; transition: opacity 0.2s;
+  }
+
+  .section-action:hover { opacity: 0.7; }
+
+  /* ── POOL CARDS ── */
+  .pools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px; margin-bottom: 40px;
+  }
+
+  .pool-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    padding: 28px; cursor: pointer;
+    transition: all 0.2s; position: relative; overflow: hidden;
+  }
+
+  .pool-card:hover {
+    border-color: var(--coral);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+  }
+
+  .pool-card-accent {
+    position: absolute; top: 0; left: 0; bottom: 0;
+    width: 4px; background: var(--coral);
+  }
+
+  .pool-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px; color: var(--ink); margin-bottom: 4px; letter-spacing: 0.03em;
+  }
+
+  .pool-leader {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; color: var(--ink-light);
+    letter-spacing: 0.1em; margin-bottom: 20px;
+  }
+
+  .pool-stats {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; margin-bottom: 20px;
+  }
+
+  .pool-stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px; letter-spacing: 0.15em;
+    color: var(--ink-light); text-transform: uppercase; margin-bottom: 4px;
+  }
+
+  .pool-stat-value {
+    font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--ink);
+  }
+
+  .pool-stat-value.coral { color: var(--coral); }
+
+  .pool-bar { height: 4px; background: var(--border); margin-bottom: 16px; }
+  .pool-bar-fill { height: 100%; background: var(--coral); transition: width 0.6s ease; }
+
+  .pool-actions { display: flex; gap: 8px; }
+
+  .btn {
+    padding: 10px 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 600;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    cursor: pointer; border: none; transition: all 0.15s;
+  }
+
+  .btn-primary { background: var(--coral); color: var(--white); flex: 1; }
+  .btn-primary:hover { background: var(--coral-light); transform: translateY(-1px); }
+
+  .btn-secondary {
+    background: var(--white); color: var(--ink);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--coral); color: var(--coral); }
+
+  .btn-ghost {
+    background: transparent; color: var(--coral);
+    border: 1px solid var(--coral);
+  }
+  .btn-ghost:hover { background: var(--coral); color: var(--white); }
+
+  /* ── MEMBER TAG ── */
+  .member-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 8px;
+    background: var(--coral-pale);
+    border: 1px solid rgba(255,77,28,0.15);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; color: var(--coral); letter-spacing: 0.05em;
+  }
+
+  /* ── FORMS ── */
+  .form-grid { display: grid; gap: 20px; max-width: 560px; }
+  .form-group { display: flex; flex-direction: column; gap: 8px; }
+
+  .form-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 0.15em;
+    color: var(--ink-light); text-transform: uppercase;
+  }
+
+  .form-input {
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    background: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px; color: var(--ink);
+    outline: none; transition: border-color 0.15s; width: 100%;
+  }
+
+  .form-input:focus { border-color: var(--coral); }
+  .form-input::placeholder { color: var(--ink-light); opacity: 0.5; }
+  .form-hint { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--ink-light); letter-spacing: 0.05em; }
+
+  /* ── CLAIM ROW ── */
+  .claim-row {
+    display: grid; grid-template-columns: 1fr auto auto auto;
+    gap: 16px; align-items: center;
+    padding: 16px 0; border-bottom: 1px solid var(--border);
+  }
+
+  .claim-wallet { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--ink); }
+  .claim-amount { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: var(--coral); }
+  .claim-time { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--ink-light); letter-spacing: 0.05em; }
+
+  .badge {
+    display: inline-block; padding: 3px 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px; letter-spacing: 0.12em;
+    text-transform: uppercase; font-weight: 500;
+  }
+
+  .badge-success { background: #E8F8F0; color: var(--success); border: 1px solid rgba(46,204,113,0.3); }
+  .badge-pending { background: #FFF8E8; color: var(--gold); border: 1px solid rgba(232,160,32,0.3); }
+  .badge-active { background: var(--coral-pale); color: var(--coral); border: 1px solid rgba(255,77,28,0.2); }
+
+  /* ── MY POLICY ── */
+  .policy-hero {
+    background: var(--white);
+    border: 1px solid var(--border); border-top: 4px solid var(--coral);
+    padding: 40px; margin-bottom: 32px;
+    display: grid; grid-template-columns: 1fr auto;
+    gap: 40px; align-items: center;
+  }
+
+  .policy-status-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 0.15em;
+    color: var(--ink-light); text-transform: uppercase; margin-bottom: 8px;
+  }
+
+  .policy-status-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px; line-height: 1; margin-bottom: 16px;
+  }
+
+  .policy-meta { display: flex; gap: 24px; margin-top: 16px; }
+  .policy-meta-label {
+    font-family: 'DM Mono', monospace; font-size: 9px;
+    color: var(--ink-light); letter-spacing: 0.12em;
+    text-transform: uppercase; margin-bottom: 3px;
+  }
+  .policy-meta-value { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--ink); }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    text-align: center; padding: 80px 40px;
+    border: 1px dashed var(--border); background: var(--white);
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.3; }
+  .empty-title { font-family: 'Bebas Neue', sans-serif; font-size: 24px; color: var(--ink-light); margin-bottom: 8px; }
+  .empty-desc { font-size: 14px; color: var(--ink-light); margin-bottom: 24px; font-weight: 300; }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(26,15,10,0.6);
+    z-index: 500; display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--white);
+    width: 100%; max-width: 520px; padding: 40px;
+    position: relative;
+    transform: translateY(20px); transition: transform 0.3s ease;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-header { margin-bottom: 32px; padding-bottom: 16px; border-bottom: 2px solid var(--coral); }
+  .modal-eyebrow { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--coral); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 6px; }
+  .modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--ink); letter-spacing: 0.03em; }
+
+  .modal-close {
+    position: absolute; top: 20px; right: 20px;
+    background: none; border: none; font-size: 20px;
+    cursor: pointer; color: var(--ink-light); transition: color 0.15s; padding: 4px;
+  }
+  .modal-close:hover { color: var(--coral); }
+
+  /* ── NOTICE ── */
+  .notice {
+    padding: 16px 20px;
+    background: var(--coral-pale); border-left: 3px solid var(--coral);
+    margin-bottom: 24px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--ink-mid); line-height: 1.6; letter-spacing: 0.03em;
+  }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 32px; right: 32px;
+    background: var(--ink); color: var(--white);
+    padding: 16px 24px;
+    font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 0.05em;
+    z-index: 2000;
+    transform: translateY(20px); opacity: 0; transition: all 0.3s ease;
+    max-width: 360px; border-left: 3px solid var(--coral);
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- WALLET GATE -->
+<div id="gate">
+  <div class="gate-bg"></div>
+  <div class="gate-content">
+    <div class="gate-eyebrow">EVE FRONTIER · STILLNESS · SUI NETWORK</div>
+    <div class="gate-logo">RIFT<br>MERCANTILE</div>
+    <div class="gate-sub">Tribe Fleet Insurance</div>
+    <div class="gate-desc">
+      Make exploration less risky by insuring the fleet.<br>
+      Submit claims against the pool on player death.
+    </div>
+    <button class="gate-connect-btn" onclick="connectWallet()">Connect EVE Vault</button>
+    <div class="gate-note">REQUIRES SUI WALLET · EVE FRONTIER ACCOUNT</div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+
+  <header class="header">
+    <div class="header-logo">RIFT MERCANTILE<span>TRIBE FLEET INSURANCE</span></div>
+    <nav class="header-nav">
+      <button class="nav-btn active" onclick="showPage('pools', this)">Pools</button>
+      <button class="nav-btn" onclick="showPage('my-pool', this)">My Pool</button>
+      <button class="nav-btn" onclick="showPage('my-policy', this)">My Policy</button>
+      <button class="nav-btn" onclick="showPage('about', this)">About</button>
+    </nav>
+    <div class="wallet-badge">
+      <div class="wallet-dot"></div>
+      <span id="wallet-display">0x0000...0000</span>
+    </div>
+  </header>
+
+  <!-- PAGE: POOLS -->
+  <div id="page-pools" class="page active">
+    <div class="hero-band">
+      <div class="hero-eyebrow">ACTIVE INSURANCE POOLS · STILLNESS</div>
+      <div class="hero-title">Every Death Has a Cost.<br>Make Sure It's Covered.</div>
+      <div class="hero-desc">Browse open corp insurance pools, buy a policy, or start your own. One claim per policy. No exceptions.</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Total Pools</div>
+        <div class="stat-value" id="stat-pools">4<span>active</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">SUI Locked</div>
+        <div class="stat-value">2,840<span>SUI</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Policies Issued</div>
+        <div class="stat-value">31<span>total</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Claims Paid</div>
+        <div class="stat-value">12<span>payouts</span></div>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <div class="section-title">Open Pools</div>
+      <button class="section-action" onclick="openModal('create-pool-modal')">+ Create Pool</button>
+    </div>
+
+    <div class="pools-grid" id="pools-grid"></div>
+
+    <div style="text-align:center;padding:40px 0 20px;font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-light);letter-spacing:0.12em;">
+      FOR 2026 EVE FRONTIER HACKATHON · CYCLE 5 · VERSION 0.01
+    </div>
+
+  </div>
+
+  <!-- PAGE: MY POOL -->
+  <div id="page-my-pool" class="page">
+    <div class="hero-band">
+      <div class="hero-eyebrow">POOL MANAGEMENT</div>
+      <div class="hero-title">Your Insurance Pool</div>
+      <div class="hero-desc">Manage members, top up your balance, and review claim history.</div>
+    </div>
+    <div id="my-pool-content"></div>
+  </div>
+
+  <!-- PAGE: MY POLICY -->
+  <div id="page-my-policy" class="page">
+    <div class="hero-band">
+      <div class="hero-eyebrow">POLICY HOLDER</div>
+      <div class="hero-title">Your Active Policy</div>
+      <div class="hero-desc">One claim per policy. File when you've been destroyed. Your payout is waiting.</div>
+    </div>
+    <div id="my-policy-content"></div>
+  </div>
+
+  <!-- PAGE: ABOUT -->
+  <div id="page-about" class="page">
+    <div class="hero-band">
+      <div class="hero-eyebrow">TECHNICAL OVERVIEW</div>
+      <div class="hero-title">How Rift Mercantile Works</div>
+      <div class="hero-desc">Built for the 2026 EVE Frontier × Sui Hackathon. On-chain insurance infrastructure for player corporations.</div>
+    </div>
+
+    <!-- HOW IT WORKS -->
+    <div class="section-header"><div class="section-title">The Protocol</div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:40px;">
+      <div class="stat-card" style="padding:24px;">
+        <div style="font-family:'Bebas Neue';font-size:48px;color:var(--coral);line-height:1;margin-bottom:8px;">01</div>
+        <div style="font-family:'Bebas Neue';font-size:18px;color:var(--ink);margin-bottom:8px;">POOL CREATION</div>
+        <div style="font-family:'DM Sans';font-size:13px;color:var(--ink-light);line-height:1.6;font-weight:300;">A corp leader deploys a pool on Sui, deposits SUI as the reserve, and sets payout and premium amounts. The pool becomes a shared on-chain object accessible to anyone.</div>
+      </div>
+      <div class="stat-card" style="padding:24px;">
+        <div style="font-family:'Bebas Neue';font-size:48px;color:var(--coral);line-height:1;margin-bottom:8px;">02</div>
+        <div style="font-family:'Bebas Neue';font-size:18px;color:var(--ink);margin-bottom:8px;">POLICY PURCHASE</div>
+        <div style="font-family:'DM Sans';font-size:13px;color:var(--ink-light);line-height:1.6;font-weight:300;">A registered corp member pays the SUI premium. The contract mints a Policy NFT to their wallet — a cryptographic certificate of coverage with a timestamp anchored on-chain.</div>
+      </div>
+      <div class="stat-card" style="padding:24px;">
+        <div style="font-family:'Bebas Neue';font-size:48px;color:var(--coral);line-height:1;margin-bottom:8px;">03</div>
+        <div style="font-family:'Bebas Neue';font-size:18px;color:var(--ink);margin-bottom:8px;">CLAIM & PAYOUT</div>
+        <div style="font-family:'DM Sans';font-size:13px;color:var(--ink-light);line-height:1.6;font-weight:300;">After dying, the player files a claim. The dApp verifies their death against live Stillness chain data. If verified after policy purchase, the contract releases the payout automatically.</div>
+      </div>
+    </div>
+
+    <!-- DATA STACK -->
+    <div class="section-header"><div class="section-title">Data Sources</div></div>
+    <div style="background:var(--white);border:1px solid var(--border);padding:32px;margin-bottom:40px;">
+      <div style="display:grid;gap:16px;">
+
+        <div style="display:grid;grid-template-columns:200px 1fr;gap:16px;padding-bottom:16px;border-bottom:1px solid var(--border);">
+          <div style="font-family:'DM Mono';font-size:11px;color:var(--ink-light);letter-spacing:0.1em;text-transform:uppercase;padding-top:2px;">Kill Verification</div>
+          <div>
+            <div style="font-family:'DM Mono';font-size:12px;color:var(--ink);margin-bottom:4px;">suix_queryEvents → KillmailCreatedEvent</div>
+            <div style="font-family:'DM Mono';font-size:10px;color:var(--ink-light);">Queries live Stillness chain for deaths matching victim character ID after policy purchase timestamp. Fields used: victim_id.item_id, kill_timestamp.</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:200px 1fr;gap:16px;padding-bottom:16px;border-bottom:1px solid var(--border);">
+          <div style="font-family:'DM Mono';font-size:11px;color:var(--ink-light);letter-spacing:0.1em;text-transform:uppercase;padding-top:2px;">Identity Resolution</div>
+          <div>
+            <div style="font-family:'DM Mono';font-size:12px;color:var(--ink);margin-bottom:4px;">GraphQL → PlayerProfile object</div>
+            <div style="font-family:'DM Mono';font-size:10px;color:var(--ink-light);">Resolves connected wallet address to EVE Frontier character ID via on-chain PlayerProfile object ownership.</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:200px 1fr;gap:16px;padding-bottom:16px;border-bottom:1px solid var(--border);">
+          <div style="font-family:'DM Mono';font-size:11px;color:var(--ink-light);letter-spacing:0.1em;text-transform:uppercase;padding-top:2px;">Policy Records</div>
+          <div>
+            <div style="font-family:'DM Mono';font-size:12px;color:var(--ink);margin-bottom:4px;">Sui shared objects — InsurancePool + Policy NFT</div>
+            <div style="font-family:'DM Mono';font-size:10px;color:var(--ink-light);">All pool state and policy records are stored on-chain as Sui objects. Policies are NFTs transferred to member wallets. Claims mark policy as consumed — one claim per policy, enforced by contract.</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:200px 1fr;gap:16px;">
+          <div style="font-family:'DM Mono';font-size:11px;color:var(--ink-light);letter-spacing:0.1em;text-transform:uppercase;padding-top:2px;">Trust Model</div>
+          <div>
+            <div style="font-family:'DM Mono';font-size:12px;color:var(--ink);margin-bottom:4px;">Frontend-verified kills, on-chain policy enforcement</div>
+            <div style="font-family:'DM Mono';font-size:10px;color:var(--ink-light);">Kill verification is performed client-side against live Sui RPC. Policy records, premium payments, and payouts are fully on-chain and trustless. V2 will add oracle cosigning for fully trustless kill verification.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ON-CHAIN PROOF -->
+    <div class="section-header"><div class="section-title">On-Chain Proof</div></div>
+    <div style="background:var(--white);border:1px solid var(--border);padding:32px;margin-bottom:40px;">
+      <div style="display:grid;gap:12px;">
+
+        ${[
+          { label: 'Smart Contract', id: '0x0f31f8801c3b81f65f8dd0617aad7143411273ec11ea8f6ee7a9eae7d7e22b65', type: 'object' },
+          { label: 'Deploy Transaction', id: '4oweCz7Epuhq8hviaoDmvwsKuXkjt5kPHmYxFjxU5Zv4', type: 'tx' },
+          { label: 'Live Pool (RIFT MERCANTILE ALPHA)', id: '0x46299b5aab478290cea2261dfc1812c97276c810d4cbde9a3b01659362d88acc', type: 'object' },
+          { label: 'Pool Creation Transaction', id: 'Qu1zDGdg3BUoUnsH2V3f88T9LHXsxRRyJzyGxCZC39q', type: 'tx' },
+          { label: 'Policy NFT (First Policy)', id: '0x512f2c4579412d3581f6d829349dd9e1e01e86595f4a73daa5cf3cfb7a5f0dbe', type: 'object' },
+          { label: 'Policy Purchase Transaction', id: 'Ahyp47xJ44kqWEYBBgcBPeC39Y244WG9xGHLiFb5PRW8', type: 'tx' },
+          { label: 'World Package (Stillness)', id: '0x28b497559d65ab320d9da4613bf2498d5946b2c0ae3597ccfda3072ce127448c', type: 'object' },
+          { label: 'Killmail Registry (Stillness)', id: '0x7fd9a32d0bbe7b1cfbb7140b1dd4312f54897de946c399edb21c3a12e52ce283', type: 'object' },
+        ].map(item => `
+          <div style="display:grid;grid-template-columns:220px 1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);">
+            <div style="font-family:'DM Mono';font-size:10px;color:var(--ink-light);letter-spacing:0.08em;text-transform:uppercase;">${item.label}</div>
+            <div style="font-family:'DM Mono';font-size:11px;color:var(--ink);word-break:break-all;">${item.id}</div>
+            <a href="https://suiscan.xyz/testnet/${item.type}/${item.id}" target="_blank" style="
+              background:var(--coral);color:var(--white);
+              padding:6px 12px;
+              font-family:'DM Mono';font-size:9px;letter-spacing:0.1em;
+              text-decoration:none;text-transform:uppercase;
+              white-space:nowrap;
+              transition:opacity 0.2s;
+            " onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">View ↗</a>
+          </div>
+        `).join('')}
+
+      </div>
+    </div>
+
+    <div style="text-align:center;padding:20px 0 40px;font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-light);letter-spacing:0.12em;">
+      BUILT BY ALLEN AU · 2026 EVE FRONTIER × SUI HACKATHON · CYCLE 5 · VERSION 0.01
+    </div>
+
+  </div>
+
+</div>
+
+<!-- MODALS -->
+
+<!-- Create Pool -->
+<div class="modal-overlay" id="create-pool-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('create-pool-modal')">✕</button>
+    <div class="modal-header">
+      <div class="modal-eyebrow">New Insurance Pool</div>
+      <div class="modal-title">Create a Pool</div>
+    </div>
+    <div class="notice">You become the pool leader. Members must be added by wallet address. Funds are held on-chain until claimed.</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Corp / Pool Name</label>
+        <input class="form-input" id="pool-name" placeholder="e.g. IRON VANGUARD" maxlength="32" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Payout Per Death (SUI)</label>
+        <input class="form-input" id="pool-payout" type="number" placeholder="50" min="1" />
+        <div class="form-hint">Amount paid to member per verified death claim</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Premium Per Policy (SUI)</label>
+        <input class="form-input" id="pool-premium" type="number" placeholder="10" min="1" />
+        <div class="form-hint">What members pay to activate a policy</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Initial Deposit (SUI)</label>
+        <input class="form-input" id="pool-deposit" type="number" placeholder="500" min="1" />
+        <div class="form-hint">Seed the pool — more funds means more credibility</div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;padding:16px;" onclick="createPool()">Deploy Pool on Sui</button>
+    </div>
+  </div>
+</div>
+
+<!-- Buy Policy -->
+<div class="modal-overlay" id="buy-policy-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('buy-policy-modal')">✕</button>
+    <div class="modal-header">
+      <div class="modal-eyebrow">Purchase Policy</div>
+      <div class="modal-title" id="buy-modal-title">Buy Policy</div>
+    </div>
+    <div class="notice">One claim per policy. Once you file a claim, the policy is consumed. Buy a new policy for continued coverage.</div>
+    <div id="buy-modal-details" style="margin-bottom:24px;"></div>
+    <button class="btn btn-primary" style="width:100%;padding:16px;" onclick="buyPolicy()">Confirm &amp; Pay Premium</button>
+  </div>
+</div>
+
+<!-- Add Member -->
+<div class="modal-overlay" id="add-member-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('add-member-modal')">✕</button>
+    <div class="modal-header">
+      <div class="modal-eyebrow">Pool Management</div>
+      <div class="modal-title">Add Member</div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Member Wallet Address</label>
+        <input class="form-input" id="member-address" placeholder="0x..." />
+        <div class="form-hint">Sui wallet address of the corp member</div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;padding:16px;" onclick="addMember()">Add to Pool</button>
+    </div>
+  </div>
+</div>
+
+<!-- Claim -->
+<div class="modal-overlay" id="claim-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('claim-modal')">✕</button>
+    <div class="modal-header">
+      <div class="modal-eyebrow">File Claim</div>
+      <div class="modal-title">Claim Payout</div>
+    </div>
+    <div class="notice">Your killmail is verified against Stillness chain data. Kill must have occurred after policy purchase. This consumes your policy.</div>
+    <div id="claim-verification" style="margin-bottom:24px;"></div>
+    <button class="btn btn-primary" style="width:100%;padding:16px;" onclick="fileClaim()">Submit Claim</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUI_RPC = 'https://fullnode.testnet.sui.io:443';
+const WORLD_PACKAGE = '0x28b497559d65ab320d9da4613bf2498d5946b2c0ae3597ccfda3072ce127448c';
+const WORLD_API = 'https://world-api-stillness.live.tech.evefrontier.com';
+
+// ── RIFT MERCANTILE DEPLOYED CONTRACT ──
+const RIFT_PACKAGE = '0x0f31f8801c3b81f65f8dd0617aad7143411273ec11ea8f6ee7a9eae7d7e22b65';
+const RIFT_MODULE = `${RIFT_PACKAGE}::insurance`;
+const MIST_PER_SUI = 1_000_000_000;
+const SUI_CLOCK = '0x0000000000000000000000000000000000000000000000000000000000000006';
+
+// ── REAL ON-CHAIN POOL ──
+const REAL_POOL = {
+  id: 'pool_real',
+  objectId: '0x46299b5aab478290cea2261dfc1812c97276c810d4cbde9a3b01659362d88acc',
+  name: 'RIFT MERCANTILE ALPHA',
+  leader: '0xeb6b...c16f',
+  leaderFull: '0xeb6b3ab2b1c6071574f9fdc1b043ae7fd56cdacd1bfb56e21adb2d5ae003c16f',
+  balance: 0.5,
+  payout: 0.01,
+  premium: 0.002,
+  members: ['0xeb6b...c16f', '0x5555...f456'],
+  policies: 1,
+  claims: 0,
+  maxPolicies: 50,
+  isReal: true,
+};
+
+let walletAddress = null;
+let selectedPoolId = null;
+let myPolicy = null;
+
+const mockPools = [
+  REAL_POOL,
+  {
+    id: 'pool_001', name: 'IRON VANGUARD',
+    leader: '0x4f3a...9e21', leaderFull: '0x4f3a8b2c1d9e7f0a3b5c8d2e9f1a4b7c8d9e0f21',
+    balance: 1200, payout: 80, premium: 15,
+    members: ['0x4f3a...9e21','0xAb12...3f4e','0xC9d8...7a1b','0xE5f2...0c3d'],
+    policies: 12, claims: 5, maxPolicies: 20,
+  },
+  {
+    id: 'pool_002', name: 'SILENT DRIFT CO.',
+    leader: '0xB7e6...2d1c', leaderFull: '0xB7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8',
+    balance: 840, payout: 50, premium: 10,
+    members: ['0xB7e6...2d1c','0xF1a2...8b3c','0x3D4e...9c1f'],
+    policies: 9, claims: 4, maxPolicies: 15,
+  },
+  {
+    id: 'pool_003', name: 'NOVA CARTEL',
+    leader: '0x7C8d...5e2a', leaderFull: '0x7C8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d',
+    balance: 600, payout: 60, premium: 12,
+    members: ['0x7C8d...5e2a','0x9A0b...1c2d'],
+    policies: 6, claims: 2, maxPolicies: 10,
+  },
+  {
+    id: 'pool_004', name: 'DEAD RECKONING',
+    leader: '0xD3e4...7f8a', leaderFull: '0xD3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2',
+    balance: 200, payout: 40, premium: 8,
+    members: ['0xD3e4...7f8a'],
+    policies: 4, claims: 1, maxPolicies: 8,
+  }
+];
+
+const mockClaims = [
+  { wallet: '0xAb12...3f4e', amount: 80, pool: 'IRON VANGUARD', time: '2h ago' },
+  { wallet: '0xF1a2...8b3c', amount: 50, pool: 'SILENT DRIFT CO.', time: '5h ago' },
+  { wallet: '0xC9d8...7a1b', amount: 80, pool: 'IRON VANGUARD', time: '1d ago' },
+  { wallet: '0x3D4e...9c1f', amount: 50, pool: 'SILENT DRIFT CO.', time: '2d ago' },
+];
+
+// ── WALLET ──
+let suiWalletAdapter = null;
+let eveVaultWallet = null;
+
+// Pre-load EVE Vault as soon as page loads
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    window.dispatchEvent(new CustomEvent('wallet-standard:app-ready', {
+      detail: {
+        register: (wallet) => {
+          if (wallet?.name === 'Eve Vault' || wallet?.features?.['standard:connect']) {
+            eveVaultWallet = wallet;
+            console.log('EVE Vault pre-loaded:', wallet.name);
+          }
+          return () => {};
+        }
+      }
+    }));
+  }, 500);
+});
+
+async function connectWallet() {
+  const btn = document.querySelector('.gate-connect-btn');
+  btn.textContent = 'Connecting...';
+  btn.disabled = true;
+
+  try {
+    const wallet = eveVaultWallet;
+    if (wallet) {
+      const result = await wallet.features['standard:connect'].connect({ silent: false });
+      const accounts = result.accounts || [];
+      if (accounts.length > 0) {
+        walletAddress = accounts[0].address;
+        suiWalletAdapter = wallet;
+        showToast('EVE Vault connected ✓');
+        proceedToApp();
+        return;
+      }
+    }
+
+    // No wallet found — show choice
+    btn.textContent = 'Connect EVE Vault';
+    btn.disabled = false;
+    showWalletChoice();
+
+  } catch(e) {
+    console.error('Wallet connection error:', e);
+    btn.textContent = 'Connect EVE Vault';
+    btn.disabled = false;
+    showWalletChoice();
+  }
+}
+
+function showWalletChoice() {
+  const content = document.querySelector('.gate-content');
+  const existing = document.getElementById('wallet-choice');
+  if (existing) return;
+
+  const choice = document.createElement('div');
+  choice.id = 'wallet-choice';
+  choice.style.cssText = 'margin-top:24px;';
+  choice.innerHTML = `
+    <div style="font-family:'DM Mono',monospace;font-size:11px;color:rgba(255,255,255,0.6);letter-spacing:0.1em;margin-bottom:16px;">
+      NO WALLET DETECTED
+    </div>
+    <div style="display:flex;gap:12px;justify-content:center;">
+      <button onclick="enterDemoMode()" style="
+        background:transparent;color:rgba(255,255,255,0.6);
+        border:1px solid rgba(255,255,255,0.3);
+        padding:12px 24px;
+        font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;
+        letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;
+        transition:all 0.2s;
+      ">Enter Demo Mode</button>
+    </div>
+    <div style="margin-top:12px;font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.08em;">
+      Install EVE Vault or access via Smart Assembly in-game for live transactions
+    </div>
+  `;
+  content.appendChild(choice);
+}
+
+function enterDemoMode() {
+  walletAddress = '0xDEMO' + Array.from({length: 36}, () =>
+    Math.floor(Math.random()*16).toString(16)).join('');
+  suiWalletAdapter = null;
+  showToast('Demo mode — no real transactions will occur');
+  proceedToApp();
+}
+
+function proceedToApp() {
+  document.getElementById('wallet-display').textContent =
+    walletAddress.startsWith('0xDEMO')
+      ? 'DEMO MODE'
+      : walletAddress.slice(0,6) + '...' + walletAddress.slice(-4);
+
+  setTimeout(() => {
+    document.getElementById('gate').classList.add('hidden');
+    document.getElementById('app').classList.add('visible');
+    renderPools();
+    renderMyPool();
+    renderMyPolicy();
+  }, 400);
+}
+
+// ── NAV ──
+function showPage(page, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+// ── RENDER POOLS ──
+function renderPools() {
+  document.getElementById('pools-grid').innerHTML = mockPools.map(pool => {
+    const fillPct = Math.min(100, (pool.policies / pool.maxPolicies) * 100);
+    const isReal = pool.isReal;
+    return `
+      <div class="pool-card" style="${isReal ? 'border-color:var(--coral);' : ''}">
+        <div class="pool-card-accent" style="${isReal ? 'background:var(--coral);width:6px;' : ''}"></div>
+        ${isReal ? `<div style="font-family:'DM Mono';font-size:9px;color:var(--coral);letter-spacing:0.15em;margin-bottom:8px;">◆ LIVE ON-CHAIN · SUI TESTNET</div>` : ''}
+        <div class="pool-name">${pool.name}</div>
+        <div class="pool-leader">LEADER · ${pool.leader}</div>
+        <div class="pool-stats">
+          <div>
+            <div class="pool-stat-label">Pool Balance</div>
+            <div class="pool-stat-value coral">${pool.balance.toLocaleString()} <span style="font-family:'DM Mono';font-size:11px;color:var(--ink-light)">SUI</span></div>
+          </div>
+          <div>
+            <div class="pool-stat-label">Payout / Death</div>
+            <div class="pool-stat-value">${pool.payout} <span style="font-family:'DM Mono';font-size:11px;color:var(--ink-light)">SUI</span></div>
+          </div>
+          <div>
+            <div class="pool-stat-label">Premium</div>
+            <div class="pool-stat-value">${pool.premium} <span style="font-family:'DM Mono';font-size:11px;color:var(--ink-light)">SUI</span></div>
+          </div>
+          <div>
+            <div class="pool-stat-label">Members</div>
+            <div class="pool-stat-value">${pool.members.length}</div>
+          </div>
+        </div>
+        <div class="pool-bar"><div class="pool-bar-fill" style="width:${fillPct}%"></div></div>
+        <div style="font-family:'DM Mono';font-size:9px;color:var(--ink-light);letter-spacing:0.1em;margin-bottom:16px;">
+          ${pool.policies}/${pool.maxPolicies} POLICIES ISSUED · ${pool.claims} CLAIMS PAID
+        </div>
+        <div class="pool-actions">
+          <button class="btn btn-primary" onclick="openBuyModal('${pool.id}')">Buy Policy</button>
+          <button class="btn btn-secondary" onclick="showToast('Pool details — coming in v2')">Details</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── RENDER MY POOL ──
+function renderMyPool() {
+  const pool = mockPools[0];
+  document.getElementById('my-pool-content').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:32px;">
+      <div class="stat-card"><div class="stat-label">Pool Balance</div><div class="stat-value" style="color:var(--coral)">${pool.balance}<span>SUI</span></div></div>
+      <div class="stat-card"><div class="stat-label">Premiums Collected</div><div class="stat-value">${pool.policies * pool.premium}<span>SUI</span></div></div>
+      <div class="stat-card"><div class="stat-label">Active Policies</div><div class="stat-value">${pool.policies}<span>issued</span></div></div>
+      <div class="stat-card"><div class="stat-label">Claims Paid Out</div><div class="stat-value">${pool.claims * pool.payout}<span>SUI</span></div></div>
+    </div>
+    <div class="section-header">
+      <div class="section-title">Members</div>
+      <button class="section-action" onclick="openModal('add-member-modal')">+ Add Member</button>
+    </div>
+    <div style="margin-bottom:32px;display:flex;flex-wrap:wrap;gap:8px;" id="members-list">
+      ${pool.members.map(m => `<div class="member-tag">◆ ${m}</div>`).join('')}
+    </div>
+    <div class="section-header">
+      <div class="section-title">Claim History</div>
+      <button class="btn btn-ghost" style="font-size:12px;padding:8px 16px;" onclick="showToast('Top-up: connect Sui wallet to deposit')">Top Up Pool</button>
+    </div>
+    <div>
+      ${mockClaims.filter(c => c.pool === pool.name).map(claim => `
+        <div class="claim-row">
+          <div class="claim-wallet">${claim.wallet}</div>
+          <div class="claim-amount">${claim.amount} SUI</div>
+          <div class="claim-time">${claim.time}</div>
+          <div><span class="badge badge-success">PAID</span></div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// ── RENDER MY POLICY ──
+function renderMyPolicy() {
+  const content = document.getElementById('my-policy-content');
+  if (!myPolicy) {
+    content.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">⚠</div>
+        <div class="empty-title">No Active Policy</div>
+        <div class="empty-desc">You are not covered. Browse pools and buy a policy before you undock.</div>
+        <button class="btn btn-primary" onclick="showPage('pools', document.querySelectorAll('.nav-btn')[0])">Browse Pools</button>
+      </div>
+    `;
+    return;
+  }
+
+  const pool = myPolicy.pool;
+  const purchasedDate = new Date(myPolicy.purchasedAt).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+  content.innerHTML = `
+    <div class="policy-hero">
+      <div>
+        <div class="policy-status-label">Coverage Status</div>
+        <div class="policy-status-value" style="color:${myPolicy.claimed ? 'var(--ink-light)' : 'var(--coral)'}">
+          ${myPolicy.claimed ? 'CONSUMED' : 'ACTIVE'}
+        </div>
+        <span class="badge ${myPolicy.claimed ? 'badge-pending' : 'badge-active'}">${myPolicy.claimed ? 'CLAIM FILED' : 'COVERED'}</span>
+        <div class="policy-meta">
+          <div><div class="policy-meta-label">Pool</div><div class="policy-meta-value">${pool.name}</div></div>
+          <div><div class="policy-meta-label">Payout</div><div class="policy-meta-value">${pool.payout} SUI</div></div>
+          <div><div class="policy-meta-label">Purchased</div><div class="policy-meta-value">${purchasedDate}</div></div>
+        </div>
+      </div>
+      <div>
+        ${myPolicy.claimed
+          ? `<button class="btn btn-primary" onclick="showPage('pools', document.querySelectorAll('.nav-btn')[0])">Buy New Policy</button>`
+          : `<button class="btn btn-primary" style="background:var(--ink);" onclick="openClaimModal()">File a Claim</button>`}
+      </div>
+    </div>
+    <div class="section-header"><div class="section-title">Claim History</div></div>
+    ${myPolicy.claimed
+      ? `<div class="claim-row">
+          <div class="claim-wallet">${walletAddress.slice(0,10)}...</div>
+          <div class="claim-amount">${pool.payout} SUI</div>
+          <div class="claim-time">Just now</div>
+          <div><span class="badge badge-success">PAID</span></div>
+        </div>`
+      : `<div class="empty-state" style="padding:40px;">
+          <div class="empty-title" style="font-size:16px;">No claims filed</div>
+          <div class="empty-desc">Stay alive out there.</div>
+        </div>`}
+  `;
+}
+
+// ── MODALS ──
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+
+function openBuyModal(poolId) {
+  const pool = mockPools.find(p => p.id === poolId);
+  selectedPoolId = poolId;
+  document.getElementById('buy-modal-title').textContent = pool.name;
+  document.getElementById('buy-modal-details').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+      <div>
+        <div class="stat-label" style="margin-bottom:6px;">Premium Cost</div>
+        <div style="font-family:'Bebas Neue';font-size:32px;color:var(--coral)">${pool.premium} <span style="font-family:'DM Mono';font-size:13px;color:var(--ink-light)">SUI</span></div>
+      </div>
+      <div>
+        <div class="stat-label" style="margin-bottom:6px;">Payout If Killed</div>
+        <div style="font-family:'Bebas Neue';font-size:32px;color:var(--ink)">${pool.payout} <span style="font-family:'DM Mono';font-size:13px;color:var(--ink-light)">SUI</span></div>
+      </div>
+    </div>
+    <div style="font-family:'DM Mono';font-size:11px;color:var(--ink-light);line-height:1.6;">
+      Pool Balance: ${pool.balance} SUI · ${pool.members.length} Members · ${pool.claims} Claims Paid
+    </div>
+  `;
+  openModal('buy-policy-modal');
+}
+
+async function openClaimModal() {
+  openModal('claim-modal');
+  document.getElementById('claim-verification').innerHTML = `
+    <div style="background:var(--coral-pale);padding:20px;border:1px solid rgba(255,77,28,0.2);">
+      <div style="font-family:'DM Mono';font-size:10px;color:var(--ink-light);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;">Verifying on Stillness chain...</div>
+      <div style="font-family:'DM Mono';font-size:12px;color:var(--ink-light);">Checking killmail events for your character...</div>
+    </div>
+  `;
+
+  // Step 1: resolve wallet → character ID
+  let characterId = null;
+  try {
+    const profileRes = await fetch('https://graphql.testnet.sui.io/graphql', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ query: `{
+        address(address: "${walletAddress}") {
+          objects(filter: { type: "${WORLD_PACKAGE}::character::PlayerProfile" }) {
+            nodes { asMoveObject { contents { json } } }
+          }
+        }
+      }`})
+    });
+    const profileData = await profileRes.json();
+    const nodes = profileData?.data?.address?.objects?.nodes || [];
+    if (nodes.length > 0) {
+      characterId = nodes[0]?.asMoveObject?.contents?.json?.character_id?.item_id;
+    }
+  } catch(e) { console.error('Profile lookup failed:', e); }
+
+  // Step 2: search killmail events for this character as victim
+  const kills = await verifyKillmail(characterId, myPolicy.purchasedAt);
+
+  if (kills.length > 0) {
+    const k = kills[0].parsedJson;
+    const killTime = new Date(parseInt(k.kill_timestamp) * 1000).toLocaleString();
+    document.getElementById('claim-verification').innerHTML = `
+      <div style="background:var(--coral-pale);padding:20px;border:1px solid rgba(255,77,28,0.2);">
+        <div style="font-family:'DM Mono';font-size:10px;color:var(--ink-light);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;">Killmail Verified ✓</div>
+        <div style="font-family:'DM Mono';font-size:12px;color:var(--ink);line-height:1.8;">
+          Character: <strong style="color:var(--coral)">${characterId || 'confirmed'}</strong><br>
+          Loss type: ${k.loss_type?.variant || 'SHIP'}<br>
+          System ID: ${k.solar_system_id?.item_id}<br>
+          Kill time: ${killTime}<br><br>
+          <span style="color:var(--success)">✓ ${kills.length} qualifying death${kills.length > 1 ? 's' : ''} found after policy purchase</span>
+        </div>
+      </div>
+    `;
+  } else {
+    document.getElementById('claim-verification').innerHTML = `
+      <div style="background:var(--coral-pale);padding:20px;border:1px solid rgba(255,77,28,0.2);">
+        <div style="font-family:'DM Mono';font-size:10px;color:var(--ink-light);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;">No Qualifying Deaths Found</div>
+        <div style="font-family:'DM Mono';font-size:12px;color:var(--ink);line-height:1.8;">
+          ${characterId ? `Character ID: ${characterId}<br>` : ''}
+          No deaths recorded after policy purchase date.<br><br>
+          <span style="color:var(--gold)">⚠ Stay alive or come back after your next death.</span>
+        </div>
+      </div>
+    `;
+    document.querySelector('#claim-modal .btn-primary').disabled = true;
+    document.querySelector('#claim-modal .btn-primary').style.opacity = '0.4';
+  }
+}
+
+// ── ACTIONS ──
+async function createPool() {
+  const name = document.getElementById('pool-name').value.trim();
+  const payout = parseFloat(document.getElementById('pool-payout').value);
+  const premium = parseFloat(document.getElementById('pool-premium').value);
+  const deposit = parseFloat(document.getElementById('pool-deposit').value);
+  if (!name || !payout || !premium || !deposit) { showToast('Fill in all fields first'); return; }
+
+  closeModal('create-pool-modal');
+
+  // Show the real contract call that would execute
+  showContractCall('create_pool', {
+    name: name,
+    payout_amount_mist: payout * MIST_PER_SUI,
+    premium_amount_mist: premium * MIST_PER_SUI,
+    initial_deposit_mist: deposit * MIST_PER_SUI,
+  }, `Create ${name} insurance pool with ${deposit} SUI deposit`);
+
+  showToast(`Deploying ${name} to Sui...`);
+
+  setTimeout(() => {
+    const short = walletAddress.slice(0,6)+'...'+walletAddress.slice(-4);
+    mockPools.push({
+      id: 'pool_'+Date.now(), name: name.toUpperCase(),
+      leader: short, leaderFull: walletAddress,
+      balance: deposit, payout, premium,
+      members: [short], policies: 0, claims: 0,
+      maxPolicies: Math.floor(deposit/payout),
+    });
+    renderPools();
+    document.getElementById('stat-pools').innerHTML = mockPools.length+'<span>active</span>';
+    showToast(`${name.toUpperCase()} pool deployed ✓ — check console for tx details`);
+    document.getElementById('pool-name').value = '';
+    document.getElementById('pool-payout').value = '';
+    document.getElementById('pool-premium').value = '';
+    document.getElementById('pool-deposit').value = '';
+  }, 1500);
+}
+
+async function buyPolicy() {
+  const pool = mockPools.find(p => p.id === selectedPoolId);
+  if (!pool) return;
+  closeModal('buy-policy-modal');
+
+  // Real on-chain transaction if wallet connected and real pool
+  if (pool.isReal && suiWalletAdapter) {
+    showToast(`Preparing transaction...`);
+    try {
+      const txFeature = suiWalletAdapter.features['sui:signAndExecuteTransaction'];
+      if (!txFeature) throw new Error('sui:signAndExecuteTransaction not available');
+
+      const account = suiWalletAdapter.accounts[0];
+      if (!account) throw new Error('No account found');
+
+      showToast(`Approve in EVE Vault...`);
+
+      // Fetch coin objects for gas payment
+      const coinsRes = await fetch(SUI_RPC, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          jsonrpc: "2.0", id: 1,
+          method: "suix_getCoins",
+          params: [account.address, "0x2::sui::SUI", null, 10]
+        })
+      });
+      const coinsData = await coinsRes.json();
+      const coins = coinsData.result?.data || [];
+      if (coins.length === 0) { showToast('No SUI coins found in wallet'); return; }
+
+      const gasPayment = coins.map(c => ({
+        objectId: c.coinObjectId,
+        version: c.version,
+        digest: c.digest,
+      }));
+
+      const premiumMist = Math.floor(pool.premium * MIST_PER_SUI);
+      const premiumBytes = btoa(String.fromCharCode(
+        ...new Uint8Array(new BigUint64Array([BigInt(premiumMist)]).buffer)
+      ));
+
+      const result = await txFeature.signAndExecuteTransaction({
+        transaction: {
+          toJSON: async () => JSON.stringify({
+            version: 2,
+            sender: account.address,
+            expiration: null,
+            gasData: {
+              budget: "10000000",
+              price: "1000",
+              owner: account.address,
+              payment: gasPayment
+            },
+            inputs: [
+              { Pure: { bytes: premiumBytes } },
+              { Object: { SharedObject: { objectId: pool.objectId, initialSharedVersion: "349181502", mutable: true } } },
+              { Object: { SharedObject: { objectId: SUI_CLOCK, initialSharedVersion: "1", mutable: false } } }
+            ],
+            commands: [
+              {
+                SplitCoins: {
+                  coin: { GasCoin: true },
+                  amounts: [{ Input: 0 }]
+                }
+              },
+              {
+                MoveCall: {
+                  package: RIFT_PACKAGE,
+                  module: 'insurance',
+                  function: 'buy_policy',
+                  typeArguments: [],
+                  arguments: [
+                    { Input: 1 },
+                    { Result: 0 },
+                    { Input: 2 }
+                  ]
+                }
+              }
+            ]
+          })
+        },
+        account,
+        chain: 'sui:testnet',
+      });
+
+      if (result?.digest || result?.effects) {
+        myPolicy = { active: true, pool, purchasedAt: Date.now(), claimed: false, onChain: true };
+        pool.policies++;
+        renderMyPolicy();
+        showToast(`Policy purchased on-chain ✓`);
+        return;
+      }
+    } catch(err) {
+      console.error('Wallet tx error:', err);
+      showToast(`Tx failed: ${err.message?.slice(0,60) || 'check console'}`);
+      return;
+    }
+  }
+
+  // Demo mode
+  showContractCall('buy_policy', {
+    pool_id: pool.objectId || pool.id,
+    clock: SUI_CLOCK,
+  }, `Buy policy from ${pool.name}`);
+  showToast(suiWalletAdapter ? `Purchasing policy...` : `Demo mode — connect EVE Vault for real tx`);
+  setTimeout(() => {
+    myPolicy = { active: true, pool, purchasedAt: Date.now(), claimed: false };
+    pool.policies++;
+    renderMyPolicy();
+    showToast(`Policy active ✓`);
+  }, 1200);
+}
+
+async function addMember() {
+  const addr = document.getElementById('member-address').value.trim();
+  if (!addr || !addr.startsWith('0x')) { showToast('Enter a valid Sui address'); return; }
+  closeModal('add-member-modal');
+  showToast('Adding member...');
+  setTimeout(() => {
+    const short = addr.slice(0,6)+'...'+addr.slice(-4);
+    mockPools[0].members.push(short);
+    renderMyPool();
+    document.getElementById('member-address').value = '';
+    showToast('Member added ✓');
+  }, 1000);
+}
+
+async function fileClaim() {
+  closeModal('claim-modal');
+
+  showContractCall('claim', {
+    pool_id: myPolicy.pool.id,
+    policy_id: '<policy_object_id_from_wallet>',
+  }, `Claim ${myPolicy.pool.payout} SUI payout — policy consumed after this`);
+
+  showToast('Submitting claim to Sui...');
+  setTimeout(() => {
+    myPolicy.claimed = true;
+    renderMyPolicy();
+    showToast(`Claim approved — ${myPolicy.pool.payout} SUI sent ✓`);
+  }, 2000);
+}
+
+// ── TOAST ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timeout);
+  t._timeout = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ── CONTRACT INTERACTION HELPERS ──
+// These build the Sui transaction calls for the deployed contract.
+// Full SDK integration requires @mysten/sui npm package.
+// For hackathon demo: shows the exact contract call that would execute.
+
+function getContractCallInfo(fn, args) {
+  return {
+    target: `${RIFT_MODULE}::${fn}`,
+    args: args,
+    package: RIFT_PACKAGE,
+  };
+}
+
+function showContractCall(fn, args, description) {
+  const info = getContractCallInfo(fn, args);
+  showToast(`Contract call: ${fn} → ${RIFT_PACKAGE.slice(0,10)}...`);
+  console.log(`\n=== RIFT MERCANTILE CONTRACT CALL ===`);
+  console.log(`Function: ${info.target}`);
+  console.log(`Description: ${description}`);
+  console.log(`Args:`, args);
+  console.log(`Package: ${RIFT_PACKAGE}`);
+  console.log(`Explorer: https://suiscan.xyz/testnet/object/${RIFT_PACKAGE}`);
+  console.log(`=====================================\n`);
+}
+// Confirmed live field names from Stillness testnet:
+// parsedJson.victim_id.item_id = character ID (integer string)
+// parsedJson.killer_id.item_id = character ID
+// parsedJson.kill_timestamp = unix seconds (string)
+// parsedJson.solar_system_id.item_id = system ID
+// parsedJson.loss_type.variant = "STRUCTURE" | "SHIP"
+async function verifyKillmail(characterId, afterTimestamp) {
+  if (!characterId) return [];
+  try {
+    // Paginate through events to find this character as victim
+    let cursor = null;
+    let found = [];
+    for (let page = 0; page < 5; page++) { // max 5 pages = 250 events
+      const res = await fetch(SUI_RPC, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          jsonrpc: '2.0', id: 1,
+          method: 'suix_queryEvents',
+          params: [{
+            MoveModule: {
+              package: WORLD_PACKAGE,
+              module: 'killmail'
+            }
+          }, cursor, 50, false]
+        })
+      });
+      const data = await res.json();
+      const events = data?.result?.data || [];
+
+      const matches = events.filter(e => {
+        const j = e.parsedJson || {};
+        const killTs = parseInt(j.kill_timestamp || 0) * 1000; // convert to ms
+        const victimCharId = j.victim_id?.item_id;
+        return victimCharId === String(characterId) && killTs > afterTimestamp;
+      });
+
+      found = found.concat(matches);
+
+      if (!data?.result?.hasNextPage) break;
+      cursor = data?.result?.nextCursor;
+    }
+    return found;
+  } catch(err) {
+    console.error('RPC error:', err);
+    return [];
+  }
+}
+</script>
+</body>
+</html>

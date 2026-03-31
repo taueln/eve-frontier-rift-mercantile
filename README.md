@@ -1,3 +1,4 @@
+Made for 2026 EVE HACKATHON - MARCH 31, 2026
 A decentralized insurance primitive for EVE Frontier tribes, built on Sui.
 
 **See it here! rift-mercantile.vercel.app
